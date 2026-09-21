@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Para Ti 💛</title>
 
-  <!-- Google Fonts: Cursive Dancing Script for lyrics & Montserrat for controls -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
@@ -30,7 +29,6 @@
       position: relative;
     }
 
-    /* Canvas styling */
     canvas {
       position: absolute;
       top: 0;
@@ -47,7 +45,6 @@
       z-index: 2;
     }
 
-    /* Start Screen Overlay */
     .start-screen {
       position: absolute;
       z-index: 30;
@@ -104,7 +101,6 @@
       box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
     }
 
-    /* Lyrics Display Container */
     .lyrics-container {
       position: absolute;
       top: 50%;
@@ -136,6 +132,58 @@
       transform: translateY(0) scale(1);
     }
 
+    .final-card {
+      position: absolute;
+      top: 23%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.85);
+      z-index: 15;
+      text-align: center;
+      width: min(90%, 760px);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1.5s ease, transform 1.5s ease;
+    }
+
+    .final-card.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+
+    .final-card p {
+      font-family: 'Dancing Script', cursive;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      line-height: 1.35;
+      color: #fff4bd;
+      text-shadow:
+        0 0 12px rgba(255, 215, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+      font-weight: 700;
+      padding: 0 16px;
+    }
+
+    .signature {
+      position: absolute;
+      top: 28px;
+      right: 32px;
+      z-index: 20;
+      font-family: 'Dancing Script', cursive;
+      font-size: clamp(1.5rem, 2.8vw, 2rem);
+      color: #fff4bd;
+      text-shadow:
+        0 0 12px rgba(255, 215, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(-10px);
+      transition: opacity 1.5s ease, transform 1.5s ease;
+      pointer-events: none;
+    }
+
+    .signature.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
 
     @media (max-width: 600px) {
       .lyrics-container {
@@ -149,16 +197,23 @@
       .start-title {
         font-size: 2.6rem;
       }
+
+      .final-card {
+        top: 20%;
+      }
+
+      .signature {
+        top: 20px;
+        right: 20px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <!-- Canción local incluida con la página -->
   <audio id="bg-music" preload="auto" src="Chris Rainbow - Be Like a Woman.mp3"></audio>
 
-  <!-- Initial Start Screen Overlay -->
   <div class="start-screen" id="startScreen">
     <div class="start-card">
       <div class="start-title">Para Ti 💛</div>
@@ -166,36 +221,41 @@
     </div>
   </div>
 
-  <!-- Canvases -->
   <canvas id="bg-canvas"></canvas>
   <canvas id="flower-canvas"></canvas>
 
-  <!-- Lyrics Container -->
   <div class="lyrics-container">
     <p class="lyric-line" id="lyricBox"></p>
   </div>
 
+  <div class="final-card" id="finalCard">
+    <p>
+      Flores amarillas para iluminar tu día,<br>
+      y sacarte al menos una bonita sonrisa.
+    </p>
+  </div>
+
+  <div class="signature" id="signature">
+    Para Paola
+  </div>
 
   <script>
-    // --- DURACIÓN DE LA EXPERIENCIA ---
-    // 2:06 = 126 segundos.
     let START_TIME = 0;
     let END_TIME = 126;
     const FADE_START_TIME = 124.5;
 
-    // --- LÍRICA Y TIEMPOS ---
     let lyricsData = [
       { time: 25, text: "Show me the light" },
       { time: 28, text: "Tell me a story" },
       { time: 31, text: "And make it a good one" },
       { time: 38, text: "Out of the night" },
       { time: 40, text: "Into a new day"},
-      { time: 44, text: "Under the hot sun"},
+      { time: 43, text: "Under the hot sun"},
       { time: 49, text: "Stay out at night"},
-      { time: 51, text: "See who you wanna see, yeah"}, 
+      { time: 52, text: "See who you wanna see, yeah"},
       { time: 61, text: "Do what you want"},
       { time: 64, text: "But Be Like a Woman to me"},
-      { time: 71, text: "Oh, oh"},
+      { time: 70, text: "Oh, oh"},
       { time: 73, text: "Give all you've got"},
       { time: 76, text: "Under the moonlight"},
       { time: 79, text: "It's yours for the taking"},
@@ -209,19 +269,18 @@
       { time: 121, text: "Oh (Be Like a Woman to me)"}
     ];
 
-    // Elementos DOM
     const audio = document.getElementById('bg-music');
     const startScreen = document.getElementById('startScreen');
     const lyricBox = document.getElementById('lyricBox');
+    const finalCard = document.getElementById('finalCard');
+    const signature = document.getElementById('signature');
 
-    // Canvas Contexts
     const bgCanvas = document.getElementById('bg-canvas');
     const bgCtx = bgCanvas.getContext('2d');
 
     const flowerCanvas = document.getElementById('flower-canvas');
     const flowerCtx = flowerCanvas.getContext('2d');
 
-    // Variables de Estado
     let width, height, centerX, centerY, heartScale;
     let particles = [];
     let spontaneousFlowers = [];
@@ -244,7 +303,6 @@
       heartScale = Math.min(width, height) / 42;
     }
 
-    // Partículas de luz dorada sutil flotando en el fondo
     class AmbientParticle {
       constructor() {
         this.reset();
@@ -326,7 +384,6 @@
         flowerCtx.translate(this.x, this.y);
         flowerCtx.rotate(this.rotation);
 
-        // Renderizado de pétalos con gradiente cálido
         for (let i = 0; i < this.petals; i++) {
           const angle =
             (i * Math.PI * 2) / this.petals;
@@ -363,8 +420,8 @@
           flowerCtx.restore();
         }
 
-        // Centro cálido de la flor
         flowerCtx.beginPath();
+
         flowerCtx.arc(
           0,
           0,
@@ -372,10 +429,12 @@
           0,
           Math.PI * 2
         );
+
         flowerCtx.fillStyle = '#8c4a00';
         flowerCtx.fill();
 
         flowerCtx.beginPath();
+
         flowerCtx.arc(
           0,
           0,
@@ -383,6 +442,7 @@
           0,
           Math.PI * 2
         );
+
         flowerCtx.fillStyle = '#5e2e00';
         flowerCtx.fill();
 
@@ -390,8 +450,6 @@
       }
     }
 
-    // Genera una espiral densa que va desde el centro hacia
-    // el borde del corazón, rellenando progresivamente su interior.
     function generateHeartSpiralPoints(totalPoints = 1100) {
       const points = [];
       const loops = 12;
@@ -399,7 +457,6 @@
       for (let i = 0; i < totalPoints; i++) {
         const progress = i / (totalPoints - 1);
 
-        // Varias vueltas mientras el corazón crece desde el centro.
         const angle =
           progress * Math.PI * 2 * loops;
 
@@ -416,12 +473,9 @@
             Math.cos(4 * heartT)
           );
 
-        // Del centro hacia el contorno.
         const spiralScale =
           0.025 + 0.975 * progress;
 
-        // Una pequeña variación evita que las flores formen
-        // líneas mecánicas y ayuda a cerrar huecos.
         const jitter =
           0.92 + Math.random() * 0.08;
 
@@ -447,8 +501,6 @@
         generateHeartSpiralPoints(1100);
     }
 
-    // Spawnea una flor espontánea lejos del centro
-    // para no opacar la lírica
     function spawnSpontaneousFlower() {
       let x, y;
       let safe = false;
@@ -465,11 +517,11 @@
           (height - 80) +
           40;
 
-        // Mantener una zona central limpia para que la lírica
-        // permanezca completamente despejada.
         const referenceSize = Math.min(width, height);
+
         const normalizedX =
           (x - centerX) / (referenceSize * 0.34);
+
         const normalizedY =
           (y - centerY) / (referenceSize * 0.20);
 
@@ -510,14 +562,11 @@
         height
       );
 
-      // 1. Partículas de Fondo
       particles.forEach(p => {
         p.update();
         p.draw();
       });
 
-      // 2. Flores espontáneas durante la canción.
-      // Nunca invaden la zona central reservada para la lírica.
       if (
         !audio.paused &&
         !experienceFinished &&
@@ -532,16 +581,11 @@
         }
       }
 
-      // 3. Dibujar flores espontáneas
       spontaneousFlowers.forEach(f => {
         f.update();
         f.draw();
       });
 
-      // 4. Animación del corazón en espiral.
-      // Comienza cuando termina la canción y coloca varias
-      // flores por frame para que el corazón quede relleno
-      // en pocos segundos.
       if (
         isSpiralActive &&
         spiralIndex < heartSpiralPoints.length
@@ -582,21 +626,23 @@
           heartSpiralPoints.length
         ) {
           heartAnimationComplete = true;
+
+          setTimeout(() => {
+            finalCard.classList.add('show');
+            signature.classList.add('show');
+          }, 500);
         }
       }
 
-      // Dibujar flores del corazón
       heartFlowers.forEach(f => {
         f.update();
         f.draw();
       });
 
-      // 5. Control del Audio y Lírica
       if (!audio.paused) {
         const currTime =
           audio.currentTime;
 
-        // Mostrar verso según el tiempo
         const currentLyric =
           lyricsData
             .slice()
@@ -624,7 +670,6 @@
           }, 250);
         }
 
-        // Desvanecer la lírica al acercarse el final.
         if (currTime >= FADE_START_TIME) {
           const fadeProgress =
             (currTime - FADE_START_TIME) /
@@ -637,7 +682,6 @@
           audio.volume = remaining;
         }
 
-        // Detener exactamente en 2:06.
         if (
           currTime >= END_TIME &&
           !isEndingTriggered
@@ -657,38 +701,34 @@
       isEndingTriggered = true;
       experienceFinished = true;
 
-      // Detener la canción exactamente en 2:06.
       audio.pause();
       audio.currentTime = END_TIME;
       audio.volume = 0;
 
-      // Eliminar cualquier flor espontánea para dejar
-      // únicamente el corazón final.
       spontaneousFlowers = [];
 
-      // Ocultar completamente la lírica.
       lyricBox.classList.remove('active');
       lyricBox.innerText = '';
       lyricBox.style.opacity = '0';
 
-      // Comenzar inmediatamente el corazón en espiral.
+      finalCard.classList.remove('show');
+      signature.classList.remove('show');
+
       isSpiralActive = true;
     }
 
-    // Si el archivo de audio termina por sí solo,
-    // también ejecutamos el cierre de la experiencia.
-    audio.addEventListener('ended', finishExperience);
+    audio.addEventListener(
+      'ended',
+      finishExperience
+    );
 
-    // Un clic en la pantalla inicial
-    // inicia la animación y la canción
     startScreen.addEventListener(
       'click',
       async () => {
-          startScreen.classList.add(
+        startScreen.classList.add(
           'hidden'
         );
 
-        // Reiniciar el estado por si la experiencia se vuelve a ejecutar.
         isEndingTriggered = false;
         experienceFinished = false;
         isSpiralActive = false;
@@ -696,9 +736,13 @@
         spiralIndex = 0;
         heartFlowers = [];
         spontaneousFlowers = [];
+
         lyricBox.style.opacity = '';
         lyricBox.classList.remove('active');
         lyricBox.innerText = '';
+
+        finalCard.classList.remove('show');
+        signature.classList.remove('show');
 
         audio.currentTime =
           START_TIME;
@@ -721,8 +765,6 @@
       resize
     );
 
-    // Inicialización al cargar
-    // la ventana
     window.onload = () => {
       init();
       requestAnimationFrame(
