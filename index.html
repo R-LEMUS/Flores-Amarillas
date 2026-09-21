@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Para Ti 💛</title>
+
+  <!-- Google Fonts: Cursive Dancing Script for lyrics & Montserrat for controls -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background-color: #050507;
+      color: #f2f2f2;
+      font-family: 'Montserrat', sans-serif;
+      min-height: 100vh;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+    }
+
+    /* Canvas styling */
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #bg-canvas {
+      z-index: 1;
+    }
+
+    #flower-canvas {
+      z-index: 2;
+    }
+
+    /* Start Screen Overlay */
+    .start-screen {
+      position: absolute;
+      z-index: 30;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #050507;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      transition: opacity 1.2s ease, visibility 1.2s;
+    }
+
+    .start-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .start-card {
+      text-align: center;
+      padding: 30px;
+      max-width: 400px;
+    }
+
+    .start-title {
+      font-family: 'Dancing Script', cursive;
+      font-size: 3rem;
+      color: #ffd866;
+      text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+      margin-bottom: 25px;
+    }
+
+    .start-btn {
+      display: inline-block;
+      border: 1px solid rgba(255, 223, 128, 0.4);
+      padding: 14px 32px;
+      border-radius: 30px;
+      color: #fce897;
+      font-size: 0.85rem;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      background: rgba(255, 223, 128, 0.05);
+      backdrop-filter: blur(5px);
+      transition: all 0.4s ease;
+    }
+
+    .start-btn:hover {
+      background: rgba(255, 223, 128, 0.18);
+      border-color: rgba(255, 223, 128, 0.8);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.25);
+    }
+
+    /* Lyrics Display Container */
+    .lyrics-container {
+      position: absolute;
+      top: 18%;
+      z-index: 10;
+      text-align: center;
+      width: 90%;
+      max-width: 650px;
+      pointer-events: none;
+    }
+
+    .lyric-line {
+      font-family: 'Dancing Script', cursive;
+      font-size: 2.6rem;
+      line-height: 1.4;
+      color: #fff4bd;
+      opacity: 0;
+      transform: translateY(15px) scale(0.98);
+      transition: opacity 1s ease, transform 1s ease;
+      text-shadow:
+        0 0 12px rgba(255, 215, 0, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.8);
+      font-weight: 700;
+    }
+
+    .lyric-line.active {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* End Greeting Card */
+    .end-card {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.85);
+      z-index: 15;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 2s ease, transform 2s ease;
+      background: rgba(10, 10, 15, 0.45);
+      padding: 30px 40px;
+      border-radius: 20px;
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 223, 128, 0.15);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      width: 85%;
+      max-width: 440px;
+    }
+
+    .end-card.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .end-card h2 {
+      font-family: 'Dancing Script', cursive;
+      font-size: 2.8rem;
+      color: #ffe57f;
+      margin-bottom: 12px;
+      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+    }
+
+    .end-card p {
+      font-size: 1.05rem;
+      color: #f7f0d4;
+      line-height: 1.6;
+      font-weight: 300;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Canción local incluida con la página -->
+  <audio id="bg-music" preload="auto" src="Chris Rainbow - Be Like a Woman.mp3"></audio>
+
+  <!-- Initial Start Screen Overlay -->
+  <div class="start-screen" id="startScreen">
+    <div class="start-card">
+      <div class="start-title">Para Ti 💛</div>
+      <div class="start-btn">Espero que te guste ✨</div>
+    </div>
+  </div>
+
+  <!-- Canvases -->
+  <canvas id="bg-canvas"></canvas>
+  <canvas id="flower-canvas"></canvas>
+
+  <!-- Lyrics Container -->
+  <div class="lyrics-container">
+    <p class="lyric-line" id="lyricBox"></p>
+  </div>
+
+  <!-- Final End Card -->
+  <div class="end-card" id="endCard">
+    <h2>Para Ti 💛</h2>
+  </div>
+
+  <script>
+    // --- FRAGMENTO DE LA CANCIÓN ---
+    // Cambia estos valores según el fragmento que quieras reproducir.
+    let START_TIME = 0;
+    let END_TIME = 30;
+
+    // --- LÍRICA Y TIEMPOS ---
+    // Los tiempos están expresados en segundos desde el inicio
+    // de la canción.
+    let lyricsData = [
+      { time: 2, text: "You can be like a woman..." },
+      { time: 7, text: "Shining like a golden light" },
+      { time: 13, text: "Un regalo especial en este día..." },
+      { time: 19, text: "Flores amarillas para ti 💛" }
+    ];
+
+    // Elementos DOM
+    const audio = document.getElementById('bg-music');
+    const startScreen = document.getElementById('startScreen');
+    const lyricBox = document.getElementById('lyricBox');
+    const endCard = document.getElementById('endCard');
+
+    // Canvas Contexts
+    const bgCanvas = document.getElementById('bg-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+
+    const flowerCanvas = document.getElementById('flower-canvas');
+    const flowerCtx = flowerCanvas.getContext('2d');
+
+    // Variables de Estado
+    let width, height, centerX, centerY, heartScale;
+    let particles = [];
+    let spontaneousFlowers = [];
+    let heartFlowers = [];
+    let heartSpiralPoints = [];
+    let spiralIndex = 0;
+    let isSpiralActive = false;
+    let isEndingTriggered = false;
+    let lastSpontaneousTime = 0;
+
+    function resize() {
+      width = bgCanvas.width = flowerCanvas.width = window.innerWidth;
+      height = bgCanvas.height = flowerCanvas.height = window.innerHeight;
+
+      centerX = width / 2;
+      centerY = height / 2 + 20;
+
+      heartScale = Math.min(width, height) / 42;
+    }
+
+    // Partículas de luz dorada sutil flotando en el fondo
+    class AmbientParticle {
+      constructor() {
+        this.reset();
+      }
+
+      reset() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.size = Math.random() * 2 + 0.6;
+        this.opacity = Math.random() * 0.4 + 0.1;
+        this.speedY = -(Math.random() * 0.35 + 0.1);
+        this.speedX = (Math.random() - 0.5) * 0.2;
+      }
+
+      update() {
+        this.y += this.speedY;
+        this.x += this.speedX;
+
+        if (this.y < -10) {
+          this.y = height + 10;
+        }
+
+        if (this.x < 0 || this.x > width) {
+          this.reset();
+        }
+      }
+
+      draw() {
+        bgCtx.save();
+
+        bgCtx.globalAlpha = this.opacity;
+        bgCtx.fillStyle = '#fce897';
+        bgCtx.shadowBlur = 6;
+        bgCtx.shadowColor = 'rgba(255, 215, 0, 0.3)';
+
+        bgCtx.beginPath();
+        bgCtx.arc(
+          this.x,
+          this.y,
+          this.size,
+          0,
+          Math.PI * 2
+        );
+        bgCtx.fill();
+
+        bgCtx.restore();
+      }
+    }
+
+    class YellowFlower {
+      constructor(x, y, targetSize, isHeart = false) {
+        this.x = x;
+        this.y = y;
+        this.targetSize = targetSize;
+        this.currentSize = 0;
+        this.growthRate = 0.06;
+        this.rotation = Math.random() * Math.PI * 2;
+        this.petals = 6;
+        this.isHeart = isHeart;
+      }
+
+      update() {
+        if (this.currentSize < this.targetSize) {
+          this.currentSize +=
+            (this.targetSize - this.currentSize) *
+            this.growthRate + 0.1;
+
+          if (this.currentSize > this.targetSize) {
+            this.currentSize = this.targetSize;
+          }
+        }
+      }
+
+      draw() {
+        if (this.currentSize <= 0) return;
+
+        flowerCtx.save();
+
+        flowerCtx.translate(this.x, this.y);
+        flowerCtx.rotate(this.rotation);
+
+        // Renderizado de pétalos con gradiente cálido
+        for (let i = 0; i < this.petals; i++) {
+          const angle =
+            (i * Math.PI * 2) / this.petals;
+
+          flowerCtx.save();
+          flowerCtx.rotate(angle);
+
+          const grad = flowerCtx.createLinearGradient(
+            0,
+            0,
+            this.currentSize,
+            0
+          );
+
+          grad.addColorStop(0, '#fff6b3');
+          grad.addColorStop(0.5, '#fdd835');
+          grad.addColorStop(1, '#c79100');
+
+          flowerCtx.fillStyle = grad;
+
+          flowerCtx.beginPath();
+
+          flowerCtx.ellipse(
+            this.currentSize * 0.75,
+            0,
+            this.currentSize * 0.65,
+            this.currentSize * 0.3,
+            0,
+            0,
+            Math.PI * 2
+          );
+
+          flowerCtx.fill();
+          flowerCtx.restore();
+        }
+
+        // Centro cálido de la flor
+        flowerCtx.beginPath();
+        flowerCtx.arc(
+          0,
+          0,
+          this.currentSize * 0.32,
+          0,
+          Math.PI * 2
+        );
+        flowerCtx.fillStyle = '#8c4a00';
+        flowerCtx.fill();
+
+        flowerCtx.beginPath();
+        flowerCtx.arc(
+          0,
+          0,
+          this.currentSize * 0.18,
+          0,
+          Math.PI * 2
+        );
+        flowerCtx.fillStyle = '#5e2e00';
+        flowerCtx.fill();
+
+        flowerCtx.restore();
+      }
+    }
+
+    // Genera puntos ordenados en espiral que convergen suavemente
+    // en forma de corazón
+    function generateHeartSpiralPoints(totalPoints = 85) {
+      const points = [];
+      const loops = 2.5;
+
+      for (let i = 0; i < totalPoints; i++) {
+        const progress = i / totalPoints;
+        const angle =
+          progress * Math.PI * 2 * loops;
+
+        // Ecuación paramétrica de corazón base
+        const heartT = angle % (Math.PI * 2);
+
+        const hX =
+          16 * Math.pow(Math.sin(heartT), 3);
+
+        const hY =
+          -(
+            13 * Math.cos(heartT) -
+            5 * Math.cos(2 * heartT) -
+            2 * Math.cos(3 * heartT) -
+            Math.cos(4 * heartT)
+          );
+
+        // Factor de escala espiral ascendente
+        const spiralScale =
+          0.15 + 0.85 * progress;
+
+        points.push({
+          x: hX * spiralScale,
+          y: hY * spiralScale,
+          size: 13 + progress * 8
+        });
+      }
+
+      return points;
+    }
+
+    function init() {
+      resize();
+
+      particles = Array.from(
+        { length: 60 },
+        () => new AmbientParticle()
+      );
+
+      heartSpiralPoints =
+        generateHeartSpiralPoints(85);
+    }
+
+    // Spawnea una flor espontánea lejos del centro
+    // para no opacar la lírica
+    function spawnSpontaneousFlower() {
+      let x, y;
+      let safe = false;
+      let attempts = 0;
+
+      while (!safe && attempts < 15) {
+        x =
+          Math.random() *
+          (width - 80) +
+          40;
+
+        y =
+          Math.random() *
+          (height - 80) +
+          40;
+
+        // Evitar la zona central donde está la lírica
+        const distToCenter =
+          Math.hypot(
+            x - centerX,
+            y - centerY
+          );
+
+        if (distToCenter > 180) {
+          safe = true;
+        }
+
+        attempts++;
+      }
+
+      const size =
+        Math.random() * 6 + 14;
+
+      spontaneousFlowers.push(
+        new YellowFlower(
+          x,
+          y,
+          size
+        )
+      );
+    }
+
+    function animate(timestamp) {
+      bgCtx.clearRect(
+        0,
+        0,
+        width,
+        height
+      );
+
+      flowerCtx.clearRect(
+        0,
+        0,
+        width,
+        height
+      );
+
+      // 1. Partículas de Fondo
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+
+      // 2. Flores espontáneas durante la canción
+      if (
+        !audio.paused &&
+        !isSpiralActive &&
+        audio.currentTime < END_TIME - 3
+      ) {
+        if (
+          !lastSpontaneousTime ||
+          timestamp - lastSpontaneousTime > 1400
+        ) {
+          spawnSpontaneousFlower();
+          lastSpontaneousTime = timestamp;
+        }
+      }
+
+      // 3. Dibujar flores espontáneas
+      spontaneousFlowers.forEach(f => {
+        f.update();
+        f.draw();
+      });
+
+      // 4. Animación del corazón en espiral
+      // al finalizar el fragmento
+      if (
+        isSpiralActive &&
+        spiralIndex < heartSpiralPoints.length
+      ) {
+        const pt =
+          heartSpiralPoints[spiralIndex];
+
+        const posX =
+          centerX +
+          pt.x * heartScale;
+
+        const posY =
+          centerY +
+          pt.y * heartScale;
+
+        heartFlowers.push(
+          new YellowFlower(
+            posX,
+            posY,
+            pt.size,
+            true
+          )
+        );
+
+        spiralIndex++;
+      }
+
+      // Dibujar flores del corazón
+      heartFlowers.forEach(f => {
+        f.update();
+        f.draw();
+      });
+
+      // 5. Control del Audio y Lírica
+      if (!audio.paused) {
+        const currTime =
+          audio.currentTime;
+
+        // Mostrar verso según el tiempo
+        const currentLyric =
+          lyricsData
+            .slice()
+            .reverse()
+            .find(
+              l => currTime >= l.time
+            );
+
+        if (
+          currentLyric &&
+          lyricBox.innerText !==
+            currentLyric.text
+        ) {
+          lyricBox.classList.remove(
+            'active'
+          );
+
+          setTimeout(() => {
+            lyricBox.innerText =
+              currentLyric.text;
+
+            lyricBox.classList.add(
+              'active'
+            );
+          }, 250);
+        }
+
+        // Desencadenar final cuando se alcanza
+        // END_TIME o faltan 3.5 segundos
+        if (
+          currTime >= END_TIME - 3.5 &&
+          !isSpiralActive
+        ) {
+          isSpiralActive = true;
+        }
+
+        if (
+          currTime >= END_TIME &&
+          !isEndingTriggered
+        ) {
+          isEndingTriggered = true;
+
+          fadeAudioOut();
+
+          setTimeout(() => {
+            endCard.classList.add(
+              'show'
+            );
+          }, 1500);
+        }
+      }
+
+      requestAnimationFrame(
+        animate
+      );
+    }
+
+    function fadeAudioOut() {
+      const fadeInterval =
+        setInterval(() => {
+          if (audio.volume > 0.08) {
+            audio.volume -= 0.08;
+          } else {
+            audio.volume = 0;
+            audio.pause();
+            clearInterval(
+              fadeInterval
+            );
+          }
+        }, 100);
+    }
+
+    // Un clic en la pantalla inicial
+    // inicia la animación y la canción
+    startScreen.addEventListener(
+      'click',
+      async () => {
+        startScreen.classList.add(
+          'hidden'
+        );
+
+        audio.currentTime =
+          START_TIME;
+
+        audio.volume = 1;
+
+        try {
+          await audio.play();
+        } catch (err) {
+          console.log(
+            "No se pudo iniciar el audio:",
+            err
+          );
+        }
+      }
+    );
+
+    window.addEventListener(
+      'resize',
+      resize
+    );
+
+    // Inicialización al cargar
+    // la ventana
+    window.onload = () => {
+      init();
+      requestAnimationFrame(
+        animate
+      );
+    };
+  </script>
+
+</body>
+</html>
