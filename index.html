@@ -107,26 +107,28 @@
     /* Lyrics Display Container */
     .lyrics-container {
       position: absolute;
-      top: 18%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
       z-index: 10;
       text-align: center;
-      width: 90%;
-      max-width: 650px;
+      width: min(90%, 760px);
       pointer-events: none;
     }
 
     .lyric-line {
       font-family: 'Dancing Script', cursive;
-      font-size: 2.6rem;
-      line-height: 1.4;
+      font-size: clamp(2rem, 4vw, 2.8rem);
+      line-height: 1.35;
       color: #fff4bd;
       opacity: 0;
       transform: translateY(15px) scale(0.98);
-      transition: opacity 1s ease, transform 1s ease;
+      transition: opacity 0.8s ease, transform 0.8s ease;
       text-shadow:
         0 0 12px rgba(255, 215, 0, 0.4),
         0 2px 8px rgba(0, 0, 0, 0.8);
       font-weight: 700;
+      padding: 0 16px;
     }
 
     .lyric-line.active {
@@ -134,46 +136,19 @@
       transform: translateY(0) scale(1);
     }
 
-    /* End Greeting Card */
-    .end-card {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%) scale(0.85);
-      z-index: 15;
-      text-align: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 2s ease, transform 2s ease;
-      background: rgba(10, 10, 15, 0.45);
-      padding: 30px 40px;
-      border-radius: 20px;
-      backdrop-filter: blur(6px);
-      border: 1px solid rgba(255, 223, 128, 0.15);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-      width: 85%;
-      max-width: 440px;
-    }
 
-    .end-card.show {
-      opacity: 1;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-    }
+    @media (max-width: 600px) {
+      .lyrics-container {
+        width: 94%;
+      }
 
-    .end-card h2 {
-      font-family: 'Dancing Script', cursive;
-      font-size: 2.8rem;
-      color: #ffe57f;
-      margin-bottom: 12px;
-      text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
-    }
+      .lyric-line {
+        font-size: 2rem;
+      }
 
-    .end-card p {
-      font-size: 1.05rem;
-      color: #f7f0d4;
-      line-height: 1.6;
-      font-weight: 300;
+      .start-title {
+        font-size: 2.6rem;
+      }
     }
   </style>
 </head>
@@ -200,32 +175,50 @@
     <p class="lyric-line" id="lyricBox"></p>
   </div>
 
-  <!-- Final End Card -->
-  <div class="end-card" id="endCard">
-    <h2>Para Ti 💛</h2>
-  </div>
 
   <script>
-    // --- FRAGMENTO DE LA CANCIÓN ---
-    // Cambia estos valores según el fragmento que quieras reproducir.
+    // --- DURACIÓN DE LA EXPERIENCIA ---
+    // 2:06 = 126 segundos.
     let START_TIME = 0;
-    let END_TIME = 30;
+    let END_TIME = 126;
+    const FADE_START_TIME = 124.5;
 
     // --- LÍRICA Y TIEMPOS ---
     // Los tiempos están expresados en segundos desde el inicio
     // de la canción.
+    // Sustituye los textos de ejemplo por la lírica que quieras mostrar.
     let lyricsData = [
-      { time: 2, text: "You can be like a woman..." },
-      { time: 7, text: "Shining like a golden light" },
-      { time: 13, text: "Un regalo especial en este día..." },
-      { time: 19, text: "Flores amarillas para ti 💛" }
+      { time: 25, text: "Show me the light" },
+      { time: 28, text: "Tell me a story" },
+      { time: 31, text: "And make it a good one" },
+      { time: 38, text: "Out of the night" },
+      { time: 40, text: "Into a new day"},
+      { time: 44, text: "Under the hot sun"},
+      { time: 40, text: "Into a new day"},
+      { time: 49, text: "Stay out at night"},
+      { time: 51, text: "See who you wanna see, yeah"},
+      { time: 40, text: "Into a new day"},  
+      { time: 61, text: "Do what you want"},
+      { time: 64, text: "But Be Like a Woman to me"},
+      { time: 71, text: "Oh, oh"},
+      { time: 73, text: "Give all you've got"},
+      { time: 76, text: "Under the moonlight"},
+      { time: 79, text: "It's yours for the taking"},
+      { time: 40, text: "Into a new day"},
+      { time: 85, text: "Don't turn around"},
+      { time: 88, text: "If you hear a sound"},
+      { time: 91, text: "It's just my heart breaking"},
+      { time: 97, text: "Do what you want"},
+      { time: 100, text: "But save the last dance for me, yeah"},
+      { time: 109, text: "Love is alright"},
+      { time: 112, text: "But Be Like a Woman to me"},
+      { time: 121, text: "Oh (Be Like a Woman to me)"}
     ];
 
     // Elementos DOM
     const audio = document.getElementById('bg-music');
     const startScreen = document.getElementById('startScreen');
     const lyricBox = document.getElementById('lyricBox');
-    const endCard = document.getElementById('endCard');
 
     // Canvas Contexts
     const bgCanvas = document.getElementById('bg-canvas');
@@ -240,9 +233,11 @@
     let spontaneousFlowers = [];
     let heartFlowers = [];
     let heartSpiralPoints = [];
+    let heartAnimationComplete = false;
     let spiralIndex = 0;
     let isSpiralActive = false;
     let isEndingTriggered = false;
+    let experienceFinished = false;
     let lastSpontaneousTime = 0;
 
     function resize() {
@@ -401,18 +396,19 @@
       }
     }
 
-    // Genera puntos ordenados en espiral que convergen suavemente
-    // en forma de corazón
-    function generateHeartSpiralPoints(totalPoints = 85) {
+    // Genera una espiral densa que va desde el centro hacia
+    // el borde del corazón, rellenando progresivamente su interior.
+    function generateHeartSpiralPoints(totalPoints = 1100) {
       const points = [];
-      const loops = 2.5;
+      const loops = 12;
 
       for (let i = 0; i < totalPoints; i++) {
-        const progress = i / totalPoints;
+        const progress = i / (totalPoints - 1);
+
+        // Varias vueltas mientras el corazón crece desde el centro.
         const angle =
           progress * Math.PI * 2 * loops;
 
-        // Ecuación paramétrica de corazón base
         const heartT = angle % (Math.PI * 2);
 
         const hX =
@@ -426,14 +422,19 @@
             Math.cos(4 * heartT)
           );
 
-        // Factor de escala espiral ascendente
+        // Del centro hacia el contorno.
         const spiralScale =
-          0.15 + 0.85 * progress;
+          0.025 + 0.975 * progress;
+
+        // Una pequeña variación evita que las flores formen
+        // líneas mecánicas y ayuda a cerrar huecos.
+        const jitter =
+          0.92 + Math.random() * 0.08;
 
         points.push({
-          x: hX * spiralScale,
-          y: hY * spiralScale,
-          size: 13 + progress * 8
+          x: hX * spiralScale * jitter,
+          y: hY * spiralScale * jitter,
+          size: 8.5 + Math.random() * 5.5
         });
       }
 
@@ -449,7 +450,7 @@
       );
 
       heartSpiralPoints =
-        generateHeartSpiralPoints(85);
+        generateHeartSpiralPoints(1100);
     }
 
     // Spawnea una flor espontánea lejos del centro
@@ -470,14 +471,18 @@
           (height - 80) +
           40;
 
-        // Evitar la zona central donde está la lírica
-        const distToCenter =
-          Math.hypot(
-            x - centerX,
-            y - centerY
-          );
+        // Mantener una zona central limpia para que la lírica
+        // permanezca completamente despejada.
+        const referenceSize = Math.min(width, height);
+        const normalizedX =
+          (x - centerX) / (referenceSize * 0.34);
+        const normalizedY =
+          (y - centerY) / (referenceSize * 0.20);
 
-        if (distToCenter > 180) {
+        if (
+          normalizedX * normalizedX +
+          normalizedY * normalizedY > 1
+        ) {
           safe = true;
         }
 
@@ -517,11 +522,12 @@
         p.draw();
       });
 
-      // 2. Flores espontáneas durante la canción
+      // 2. Flores espontáneas durante la canción.
+      // Nunca invaden la zona central reservada para la lírica.
       if (
         !audio.paused &&
-        !isSpiralActive &&
-        audio.currentTime < END_TIME - 3
+        !experienceFinished &&
+        audio.currentTime < FADE_START_TIME
       ) {
         if (
           !lastSpontaneousTime ||
@@ -538,33 +544,51 @@
         f.draw();
       });
 
-      // 4. Animación del corazón en espiral
-      // al finalizar el fragmento
+      // 4. Animación del corazón en espiral.
+      // Comienza cuando termina la canción y coloca varias
+      // flores por frame para que el corazón quede relleno
+      // en pocos segundos.
       if (
         isSpiralActive &&
         spiralIndex < heartSpiralPoints.length
       ) {
-        const pt =
-          heartSpiralPoints[spiralIndex];
+        const flowersPerFrame = 7;
 
-        const posX =
-          centerX +
-          pt.x * heartScale;
+        for (
+          let i = 0;
+          i < flowersPerFrame &&
+          spiralIndex < heartSpiralPoints.length;
+          i++
+        ) {
+          const pt =
+            heartSpiralPoints[spiralIndex];
 
-        const posY =
-          centerY +
-          pt.y * heartScale;
+          const posX =
+            centerX +
+            pt.x * heartScale;
 
-        heartFlowers.push(
-          new YellowFlower(
-            posX,
-            posY,
-            pt.size,
-            true
-          )
-        );
+          const posY =
+            centerY +
+            pt.y * heartScale;
 
-        spiralIndex++;
+          heartFlowers.push(
+            new YellowFlower(
+              posX,
+              posY,
+              pt.size,
+              true
+            )
+          );
+
+          spiralIndex++;
+        }
+
+        if (
+          spiralIndex >=
+          heartSpiralPoints.length
+        ) {
+          heartAnimationComplete = true;
+        }
       }
 
       // Dibujar flores del corazón
@@ -606,28 +630,25 @@
           }, 250);
         }
 
-        // Desencadenar final cuando se alcanza
-        // END_TIME o faltan 3.5 segundos
-        if (
-          currTime >= END_TIME - 3.5 &&
-          !isSpiralActive
-        ) {
-          isSpiralActive = true;
+        // Desvanecer la lírica al acercarse el final.
+        if (currTime >= FADE_START_TIME) {
+          const fadeProgress =
+            (currTime - FADE_START_TIME) /
+            (END_TIME - FADE_START_TIME);
+
+          const remaining =
+            Math.max(0, 1 - fadeProgress);
+
+          lyricBox.style.opacity = remaining;
+          audio.volume = remaining;
         }
 
+        // Detener exactamente en 2:06.
         if (
           currTime >= END_TIME &&
           !isEndingTriggered
         ) {
-          isEndingTriggered = true;
-
-          fadeAudioOut();
-
-          setTimeout(() => {
-            endCard.classList.add(
-              'show'
-            );
-          }, 1500);
+          finishExperience();
         }
       }
 
@@ -636,29 +657,54 @@
       );
     }
 
-    function fadeAudioOut() {
-      const fadeInterval =
-        setInterval(() => {
-          if (audio.volume > 0.08) {
-            audio.volume -= 0.08;
-          } else {
-            audio.volume = 0;
-            audio.pause();
-            clearInterval(
-              fadeInterval
-            );
-          }
-        }, 100);
+    function finishExperience() {
+      if (isEndingTriggered) return;
+
+      isEndingTriggered = true;
+      experienceFinished = true;
+
+      // Detener la canción exactamente en 2:06.
+      audio.pause();
+      audio.currentTime = END_TIME;
+      audio.volume = 0;
+
+      // Eliminar cualquier flor espontánea para dejar
+      // únicamente el corazón final.
+      spontaneousFlowers = [];
+
+      // Ocultar completamente la lírica.
+      lyricBox.classList.remove('active');
+      lyricBox.innerText = '';
+      lyricBox.style.opacity = '0';
+
+      // Comenzar inmediatamente el corazón en espiral.
+      isSpiralActive = true;
     }
+
+    // Si el archivo de audio termina por sí solo,
+    // también ejecutamos el cierre de la experiencia.
+    audio.addEventListener('ended', finishExperience);
 
     // Un clic en la pantalla inicial
     // inicia la animación y la canción
     startScreen.addEventListener(
       'click',
       async () => {
-        startScreen.classList.add(
+          startScreen.classList.add(
           'hidden'
         );
+
+        // Reiniciar el estado por si la experiencia se vuelve a ejecutar.
+        isEndingTriggered = false;
+        experienceFinished = false;
+        isSpiralActive = false;
+        heartAnimationComplete = false;
+        spiralIndex = 0;
+        heartFlowers = [];
+        spontaneousFlowers = [];
+        lyricBox.style.opacity = '';
+        lyricBox.classList.remove('active');
+        lyricBox.innerText = '';
 
         audio.currentTime =
           START_TIME;
